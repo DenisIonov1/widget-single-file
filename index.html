@@ -5,17 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
-<body>
-    <style>
+<body style="background: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1174&q=80');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  height: 100vh;">
+    
+    <!-- --------------------------------- -->
+     <style>
     .widget {
         font-family: "Arial", sans-serif;
         width: 100%;
         height: min(85dvh, 450px);
         display: flex;
         flex-direction: column;
-        background: white;
+        background-color: transparent;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         z-index: 9998;
     }
 
@@ -29,6 +34,8 @@
         row-gap: 10px;
         padding: 15px;
         justify-content: flex-start;
+        scrollbar-width: thin;
+        scrollbar-color: #c2c1c1  transparent;
     }
 
     .message {
@@ -84,20 +91,29 @@
         font-size: 15px;
         font-family: "Arial", sans-serif;
         color: #222d38;
+        background-color: #ffffff;
         padding: 6px 10px;
         border-radius: 11px;
-        background-color: transparent;
         transition: all 0.2s;
         cursor: pointer;
     }
 
     .suggestions-list__item:hover {
-        background-color: rgba(0, 0, 0, 0.05);
+        background-color: #e7e6e6;
     }
 
     .suggestions-list__item:active {
-        background-color: #e1dfdf;
+        background-color: #ffffff;
         transform: scale(1.02);
+    }
+
+    .widget__description {
+        text-align: center;
+        font-size: 12px;
+        text-decoration: underline;
+        margin: 0;
+        background-color: #F2F2F2;
+        border-radius: 11px;
     }
 
     .bot-thinking {
@@ -180,6 +196,9 @@
         resize: none;
         outline: none;
         box-sizing: border-box;
+        scrollbar-width: thin;
+        scrollbar-color: #c2c1c1  transparent;
+
     }
 
     .message-input:focus {
@@ -252,6 +271,45 @@
             padding: 12px 15px;
         }
     }
+
+    .typing {
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pencil {
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        animation: write 1.5s infinite ease-in-out;
+        transform-origin: bottom left;
+    }
+
+    @keyframes write {
+        0% {
+            transform: translateX(0) rotate(0deg);
+        }
+
+        25% {
+            transform: translateX(4px) rotate(-10deg);
+        }
+
+        50% {
+            transform: translateX(8px) rotate(5deg);
+        }
+
+        75% {
+            transform: translateX(4px) rotate(-10deg);
+        }
+
+        100% {
+            transform: translateX(0) rotate(0deg);
+        }
+    }
 </style>
 <div style="
     position: fixed;
@@ -262,39 +320,38 @@
     z-index: 9999;
     width: min(100vw, 420px);
     ">
-<div class="widget" id="chat-widget">
-    <div class="widget__body">
+    <div class="widget" id="chat-widget">
+        <div class="widget__body">
+            <div class="message message--bot">
+                <img class="message__logo" src="https://denisionov1.github.io/widget_full_screen/img/logo.png"
+                    alt="Ассистент">
 
-        <div class="message message--bot">
-            <img class="message__logo" src="https://denisionov1.github.io/widget_full_screen/img/logo.png"
-                alt="Ассистент">
-
-            <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем
-                жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
+                <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем
+                    жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
+            </div>
+            <div class="suggestions-list">
+                <button class="suggestions-list__item" id="learn-more" data-message="Узнать больше о ЖК">Узнать
+                    больше о ЖК</button>
+                <button class="suggestions-list__item" id="learn-flats"
+                    data-message="Узнать больше о квартирах в ЖК">Узнать
+                    больше о квартирах в ЖК</button>
+            </div>
+            <p class="widget__description">Менеджер подключится в течение 12 секунд после вашего вопроса</p>
         </div>
-
-        <div class="suggestions-list">
-            <button class="suggestions-list__item" id="learn-more" data-message="Узнать больше о ЖК">Узнать
-                больше о ЖК</button>
-            <button class="suggestions-list__item" id="learn-flats" data-message="Узнать больше о квартирах в ЖК">Узнать
-                больше о квартирах в ЖК</button>
+        <div class="widget__footer">
+            <form action="#" class="widget__form">
+                <textarea placeholder="Сообщение" class="message-input" maxlength="600"></textarea>
+                <button id="send-message" type="submit" class="message-submit">
+                    <svg width="29" height="29" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="14.5" cy="14.5" r="14.5" class="message-submit__bg" />
+                        <path class="message-submit__icon" fill-rule="evenodd" clip-rule="evenodd"
+                            d="M15 22C14.8011 22 14.6103 21.921 14.4697 21.7803C14.329 21.6397 14.25 21.4489 14.25 21.25V10.612L10.29 14.77C10.1506 14.9064 9.96351 14.9831 9.76847 14.9839C9.57343 14.9847 9.38576 14.9094 9.24527 14.7741C9.10478 14.6389 9.02252 14.4542 9.01593 14.2592C9.00934 14.0643 9.07895 13.8745 9.20999 13.73L14.46 8.23C14.53 8.15742 14.6138 8.09968 14.7066 8.06025C14.7994 8.02081 14.8992 8.00049 15 8.00049C15.1008 8.00049 15.2006 8.02081 15.2934 8.06025C15.3862 8.09968 15.47 8.15742 15.54 8.23L20.79 13.73C20.8617 13.8002 20.9187 13.8841 20.9574 13.9767C20.9961 14.0693 21.0159 14.1687 21.0155 14.2691C21.0151 14.3695 20.9946 14.4687 20.9551 14.561C20.9156 14.6533 20.858 14.7367 20.7857 14.8064C20.7134 14.876 20.6279 14.9304 20.5342 14.9663C20.4405 15.0023 20.3405 15.0191 20.2402 15.0157C20.1399 15.0123 20.0412 14.9888 19.9502 14.9466C19.8591 14.9044 19.7774 14.8444 19.71 14.77L15.75 10.612V21.25C15.75 21.4489 15.671 21.6397 15.5303 21.7803C15.3897 21.921 15.1989 22 15 22Z"
+                            fill="white" />
+                    </svg>
+                </button>
+            </form>
         </div>
     </div>
-
-    <div class="widget__footer">
-        <form action="#" class="widget__form">
-            <textarea placeholder="Сообщение" class="message-input"></textarea>
-            <button id="send-message" type="submit" class="message-submit">
-                <svg width="29" height="29" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="14.5" cy="14.5" r="14.5" class="message-submit__bg" />
-                    <path class="message-submit__icon" fill-rule="evenodd" clip-rule="evenodd"
-                        d="M15 22C14.8011 22 14.6103 21.921 14.4697 21.7803C14.329 21.6397 14.25 21.4489 14.25 21.25V10.612L10.29 14.77C10.1506 14.9064 9.96351 14.9831 9.76847 14.9839C9.57343 14.9847 9.38576 14.9094 9.24527 14.7741C9.10478 14.6389 9.02252 14.4542 9.01593 14.2592C9.00934 14.0643 9.07895 13.8745 9.20999 13.73L14.46 8.23C14.53 8.15742 14.6138 8.09968 14.7066 8.06025C14.7994 8.02081 14.8992 8.00049 15 8.00049C15.1008 8.00049 15.2006 8.02081 15.2934 8.06025C15.3862 8.09968 15.47 8.15742 15.54 8.23L20.79 13.73C20.8617 13.8002 20.9187 13.8841 20.9574 13.9767C20.9961 14.0693 21.0159 14.1687 21.0155 14.2691C21.0151 14.3695 20.9946 14.4687 20.9551 14.561C20.9156 14.6533 20.858 14.7367 20.7857 14.8064C20.7134 14.876 20.6279 14.9304 20.5342 14.9663C20.4405 15.0023 20.3405 15.0191 20.2402 15.0157C20.1399 15.0123 20.0412 14.9888 19.9502 14.9466C19.8591 14.9044 19.7774 14.8444 19.71 14.77L15.75 10.612V21.25C15.75 21.4489 15.671 21.6397 15.5303 21.7803C15.3897 21.921 15.1989 22 15 22Z"
-                        fill="white" />
-                </svg>
-            </button>
-        </form>
-    </div>
-</div>
 </div>
 <script>
     const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
@@ -303,6 +360,7 @@
     const LOGO_ALT = 'Ассистент';
     let thinkingTimer = null;
     let isBotThinking = false;
+    let isFirstUserMessage = true;
 
     function addMessage(text, type, options = {}) {
         if (!text?.trim()) return null;
@@ -351,6 +409,40 @@
         if (suggestionsList) {
             suggestionsList.remove();
         }
+    }
+
+    function showTypingIndicator() {
+        const widgetBody = document.querySelector('.widget__body');
+        if (!widgetBody) return;
+
+        isBotThinking = true;
+        disableInput();
+
+        const typing = document.createElement('div');
+        typing.className = 'bot-thinking';
+        typing.innerHTML = `
+        <img class="message__logo" src="${LOGO_URL}" alt="${LOGO_ALT}">
+        <div class="message-loading">
+            <div class="message-loading__dot"></div>
+            <div class="message-loading__dot"></div>
+            <div class="message-loading__dot"></div>
+
+        <div class="typing">
+            <span class="pencil">
+                <svg width="12" height="12" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                 d="M17.71 4.0425C18.1 3.6525 18.1 3.0025 17.71 2.6325L15.37 0.2925C15 -0.0975 14.35 -0.0975 13.96 0.2925L12.12 2.1225L15.87 5.8725M0 14.2525V18.0025H3.75L14.81 6.9325L11.06 3.1825L0 14.2525Z"
+                 fill="#000" />
+                </svg>
+            </span>
+        </div>
+    </div>
+    `;
+
+        widgetBody.appendChild(typing);
+        widgetBody.scrollTop = widgetBody.scrollHeight;
+
+        thinkingTimer = { element: typing };
     }
 
     function showBotThinking(duration = 12) {
@@ -403,14 +495,16 @@
         };
     }
 
-    function hideBotThinking() {
+    function hideAnyThinking() {
         if (thinkingTimer) {
-            clearInterval(thinkingTimer.intervalId);
             thinkingTimer.element?.remove();
+            if (thinkingTimer.intervalId) {
+                clearInterval(thinkingTimer.intervalId);
+            }
             thinkingTimer = null;
-            isBotThinking = false;
-            enableInput();
         }
+        isBotThinking = false;
+        enableInput();
     }
 
     function disableInput() {
@@ -505,24 +599,27 @@
             if (!text) return;
 
             addMessage(text, 'user');
-
             hideSuggestions();
-
             messageInput.value = '';
             messageInput.focus();
 
-            showBotThinking(12)
+            if (isFirstUserMessage) {
+                showBotThinking(12);
+                isFirstUserMessage = false;
+            } else {
+                showTypingIndicator();
+            }
 
             try {
                 const result = await sendMessageToBackend(text);
 
-                hideBotThinking();
+                hideAnyThinking();
 
                 if (result?.response) {
                     addMessage(result.response, 'bot');
                 }
             } catch {
-                hideBotThinking();
+                hideAnyThinking();
                 addMessage('Произошла ошибка. Попробуйте позже', 'bot');
             }
         });
@@ -544,24 +641,31 @@
                     suggestionsList.remove();
                 }
 
-                showBotThinking(12);
+                if (isFirstUserMessage) {
+                    showBotThinking(12);
+                    isFirstUserMessage = false;
+                } else {
+                    showTypingIndicator();
+                }
 
 
                 try {
                     const result = await sendMessageToBackend(messageText);
 
-                    hideBotThinking();
+                    hideAnyThinking();
 
                     if (result?.response) {
                         addMessage(result.response, 'bot');
                     }
                 } catch {
-                    hideBotThinking();
+                    hideAnyThinking();
                     addMessage('Произошла ошибка. Попробуйте позже', 'bot');
                 }
             }
         });
     });
+
 </script>
+     <!-- =------------------------------ -->
 </body>
 </html>
