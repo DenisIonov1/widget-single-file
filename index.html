@@ -49,6 +49,7 @@
     }
 
     .message__text {
+        white-space: pre-wrap;
         padding: 6px 10px;
         width: fit-content;
         max-width: min(80%, 600px);
@@ -87,14 +88,35 @@
     }
 
     .suggestions-list__item {
+        position: relative;
+        overflow: hidden;
         font-size: 15px;
         font-family: "Arial", sans-serif;
         color: #222d38;
         background-color: #ffffff;
         padding: 6px 10px;
         border-radius: 11px;
+        border: 1px solid #222d38;
         transition: all 0.2s;
         cursor: pointer;
+        transition: background-color 0.2s, transform 0.2s;
+        box-shadow: 1px 1px 5px 1px rgba(173, 170, 170, 0.619)
+    }
+
+    .suggestions-list__item::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -120%;
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(
+            120deg,
+            transparent,
+            rgba(223, 214, 214, 0.878),
+            transparent
+        );
+        animation: shine 3.5s infinite;
     }
 
     .suggestions-list__item:hover {
@@ -111,6 +133,7 @@
         font-size: 12px;
         text-decoration: underline;
         margin: 0;
+        padding: 4px 0;
         background-color: #F2F2F2;
         border-radius: 11px;
     }
@@ -179,7 +202,7 @@
 
     .widget__footer {
         flex-shrink: 0;
-        padding: 10px;
+        padding: 10px 15px;
     }
 
     .message-input {
@@ -286,6 +309,12 @@
         transform-origin: bottom left;
     }
 
+    @keyframes shine {
+        0% { left: -120%; }
+        60% { left: 120%; }
+        100% { left: 120%; }
+    }
+
     @keyframes write {
         0% {
             transform: translateX(0) rotate(0deg);
@@ -320,11 +349,10 @@
     <div class="widget" id="chat-widget">
         <div class="widget__body">
             <div class="message message--bot">
-                <img class="message__logo" src="https://denisionov1.github.io/widget_full_screen/img/logo.png"
+                <img class="message__logo" src="https://denisionov1.github.io/widget_full_screen/img/logo1.png"
                     alt="Ассистент">
 
-                <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем
-                    жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
+                <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
             </div>
             <div class="suggestions-list">
                 <button class="suggestions-list__item" id="learn-more" data-message="Узнать больше о ЖК">Узнать
@@ -353,7 +381,7 @@
 <script>
     const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
     const PROJECTS = '1';
-    const LOGO_URL = 'https://denisionov1.github.io/widget_full_screen/img/logo.png';
+    const LOGO_URL = 'https://denisionov1.github.io/widget_full_screen/img/logo1.png';
     const LOGO_ALT = 'Ассистент';
     let thinkingTimer = null;
     let isBotThinking = false;
@@ -402,10 +430,8 @@
     }
 
     function hideSuggestions() {
-        const suggestionsList = document.querySelector('.suggestions-list');
-        if (suggestionsList) {
-            suggestionsList.remove();
-        }
+        document.querySelector('.suggestions-list')?.remove();
+        document.querySelector('.widget__description')?.remove();
     }
 
     function showTypingIndicator() {
@@ -631,7 +657,7 @@
 
                 addMessage(messageText, 'user');
 
-                e.target.remove();
+                hideSuggestions();
 
                 const suggestionsList = document.querySelector('.suggestions-list');
                 if (suggestionsList && suggestionsList.children.length === 0) {
@@ -644,7 +670,6 @@
                 } else {
                     showTypingIndicator();
                 }
-
 
                 try {
                     const result = await sendMessageToBackend(messageText);
