@@ -230,8 +230,8 @@
     }
 
     .message-submit {
-        width: 29px;
-        height: 29px;
+        width: 38px;
+        height: 38px;
         background-color: transparent;
         border: none;
         padding: 0;
@@ -372,7 +372,7 @@
             <form action="#" class="widget__form">
                 <textarea placeholder="Сообщение" class="message-input" maxlength="600"></textarea>
                 <button id="send-message" type="submit" class="message-submit">
-                    <svg width="29" height="29" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="38" height="38" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="14.5" cy="14.5" r="14.5" class="message-submit__bg" />
                         <path class="message-submit__icon" fill-rule="evenodd" clip-rule="evenodd"
                             d="M15 22C14.8011 22 14.6103 21.921 14.4697 21.7803C14.329 21.6397 14.25 21.4489 14.25 21.25V10.612L10.29 14.77C10.1506 14.9064 9.96351 14.9831 9.76847 14.9839C9.57343 14.9847 9.38576 14.9094 9.24527 14.7741C9.10478 14.6389 9.02252 14.4542 9.01593 14.2592C9.00934 14.0643 9.07895 13.8745 9.20999 13.73L14.46 8.23C14.53 8.15742 14.6138 8.09968 14.7066 8.06025C14.7994 8.02081 14.8992 8.00049 15 8.00049C15.1008 8.00049 15.2006 8.02081 15.2934 8.06025C15.3862 8.09968 15.47 8.15742 15.54 8.23L20.79 13.73C20.8617 13.8002 20.9187 13.8841 20.9574 13.9767C20.9961 14.0693 21.0159 14.1687 21.0155 14.2691C21.0151 14.3695 20.9946 14.4687 20.9551 14.561C20.9156 14.6533 20.858 14.7367 20.7857 14.8064C20.7134 14.876 20.6279 14.9304 20.5342 14.9663C20.4405 15.0023 20.3405 15.0191 20.2402 15.0157C20.1399 15.0123 20.0412 14.9888 19.9502 14.9466C19.8591 14.9044 19.7774 14.8444 19.71 14.77L15.75 10.612V21.25C15.75 21.4489 15.671 21.6397 15.5303 21.7803C15.3897 21.921 15.1989 22 15 22Z"
@@ -421,9 +421,7 @@
 
         widgetBody.appendChild(messageEl);
 
-        requestAnimationFrame(() => {
-            widgetBody.scrollTop = widgetBody.scrollHeight;
-        });
+        scrollToBottom();
 
         return messageEl;
     }
@@ -468,7 +466,7 @@
     `;
 
         widgetBody.appendChild(typing);
-        widgetBody.scrollTop = widgetBody.scrollHeight;
+        scrollToBottom();
 
         thinkingTimer = { element: typing };
     }
@@ -498,7 +496,7 @@
   `;
         widgetBody.appendChild(thinkingEl);
 
-        widgetBody.scrollTop = widgetBody.scrollHeight;
+        scrollToBottom();
 
         let sec = duration;
         const counterEl = thinkingEl.querySelector('.message-loading__counter');
@@ -533,6 +531,7 @@
         }
         isBotThinking = false;
         enableInput();
+        scrollToBottom();
     }
 
     function disableInput() {
@@ -555,6 +554,18 @@
         buttons.forEach(btn => btn.disabled = false);
 
         if (textarea) setTimeout(() => textarea.focus(), 50);
+    }
+
+    function scrollToBottom() {
+        const body = document.querySelector('.widget__body');
+        if (!body) return;
+
+        const doScroll = () => {
+            body.scrollTop = body.scrollHeight;
+        };
+
+        requestAnimationFrame(doScroll);
+        setTimeout(doScroll, 60);
     }
 
     function getChatId(forceNew = false) {
@@ -664,10 +675,6 @@
 
                 hideSuggestions();
 
-                const suggestionsList = document.querySelector('.suggestions-list');
-                if (suggestionsList && suggestionsList.children.length === 0) {
-                    suggestionsList.remove();
-                }
 
                 if (isFirstUserMessage) {
                     showBotThinking(12);
