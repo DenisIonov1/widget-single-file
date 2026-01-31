@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+
 <body style="background: url('fores.jpg');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   height: 100vh;">
-</body>   
-    <!-- --------------------------------- -->
-     <style>
+</body>
+<!-- --------------------------------- -->
+<style>
     .widget {
         font-family: "Arial", sans-serif;
         width: 100%;
@@ -64,10 +66,12 @@
         gap: 10px;
         justify-content: flex-start;
         align-items: end;
+        animation: typingFadeIn 0.3s ease-out;
     }
 
     .message--user {
         justify-content: flex-end;
+        animation: typingFadeIn 0.2s ease-out;
     }
 
     .message--bot .message__text {
@@ -113,12 +117,10 @@
         left: -120%;
         width: 40%;
         height: 100%;
-        background: linear-gradient(
-            120deg,
-            transparent,
-            rgba(223, 214, 214, 0.878),
-            transparent
-        );
+        background: linear-gradient(120deg,
+                transparent,
+                rgba(223, 214, 214, 0.878),
+                transparent);
         animation: shine 3.5s infinite;
     }
 
@@ -132,14 +134,13 @@
     }
 
     .widget__description {
-        text-align: justify;
         font-size: 12px;
         text-decoration: underline;
         margin: 0;
         padding: 4px;
         background-color: #F2F2F2;
         border-radius: 11px;
-        text-wrap: pretty;
+        text-align: center;
     }
 
     .bot-thinking {
@@ -147,6 +148,7 @@
         gap: 10px;
         align-items: end;
         color: #666;
+        animation: typingFadeIn 0.5s ease-out;
     }
 
     .message-loading {
@@ -271,6 +273,7 @@
         .message-input {
             font-size: 16px;
         }
+
         .widget {
             margin: 0;
         }
@@ -284,6 +287,10 @@
         .widget__footer {
             padding: 10px 15px;
         }
+
+        .message-input {
+            line-height: 1;
+        }
     }
 
     @media (max-width: 480px) {
@@ -294,6 +301,16 @@
 
         .widget__body {
             padding: 12px 15px 20px;
+        }
+
+
+    }
+
+    @media (max-width: 415px) {
+        .widget__description {
+            width: fit-content;
+            max-width: 290px;
+            align-self: center;
         }
     }
 
@@ -315,9 +332,17 @@
     }
 
     @keyframes shine {
-        0% { left: -120%; }
-        60% { left: 120%; }
-        100% { left: 120%; }
+        0% {
+            left: -120%;
+        }
+
+        60% {
+            left: 120%;
+        }
+
+        100% {
+            left: 120%;
+        }
     }
 
     @keyframes write {
@@ -339,6 +364,18 @@
 
         100% {
             transform: translateX(0) rotate(0deg);
+        }
+    }
+
+    @keyframes typingFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px) scale(0.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
     }
 </style>
@@ -366,7 +403,7 @@
                     data-message="Узнать больше о квартирах в ЖК">Узнать
                     больше о квартирах в ЖК</button>
             </div>
-            <p class="widget__description">Менеджер подключится в течение 12 секунд после вашего вопроса</p>
+            <div class="widget__description">Менеджер подключится в течение 12 секунд после вашего&nbsp;вопроса</div>
         </div>
         <div class="widget__footer">
             <form action="#" class="widget__form">
@@ -391,6 +428,8 @@
     let thinkingTimer = null;
     let isBotThinking = false;
     let isFirstUserMessage = true;
+    let typingTimeoutId = null;
+    let responseDelayTimeoutId = null;
 
     function addMessage(text, type, options = {}) {
         if (!text?.trim()) return null;
@@ -437,12 +476,31 @@
         document.querySelector('.widget__description')?.remove();
     }
 
+    function startThinkingCountdown(seconds, onThreshold) {
+        let remaining = seconds;
+
+        const interval = setInterval(() => {
+            if (!thinkingTimer?.counterEl) return;
+            remaining--;
+            thinkingTimer.counterEl.textContent = remaining;
+            
+            if (remaining == onThreshold) {
+                clearInterval(interval);
+
+                thinkingTimer.element?.remove();
+                thinkingTimer = null;
+                showTypingIndicator();
+            }
+        }, 1000);
+
+        thinkingTimer.intervalId = interval;
+    }
+
     function showTypingIndicator() {
         const widgetBody = document.querySelector('.widget__body');
         if (!widgetBody) return;
 
         isBotThinking = true;
-        disableInput();
 
         const typing = document.createElement('div');
         typing.className = 'bot-thinking';
@@ -458,7 +516,7 @@
                 <svg width="12" height="12" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                  d="M17.71 4.0425C18.1 3.6525 18.1 3.0025 17.71 2.6325L15.37 0.2925C15 -0.0975 14.35 -0.0975 13.96 0.2925L12.12 2.1225L15.87 5.8725M0 14.2525V18.0025H3.75L14.81 6.9325L11.06 3.1825L0 14.2525Z"
-                 fill="#000" />
+                 fill="#a9a9aa" />
                 </svg>
             </span>
         </div>
@@ -476,10 +534,8 @@
         if (!widgetBody) return;
 
         isBotThinking = true;
-        disableInput();
 
         if (thinkingTimer) {
-            clearInterval(thinkingTimer.intervalId);
             thinkingTimer.element?.remove();
         }
 
@@ -495,29 +551,12 @@
     </div>
   `;
         widgetBody.appendChild(thinkingEl);
-
         scrollToBottom();
-
-        let sec = duration;
-        const counterEl = thinkingEl.querySelector('.message-loading__counter');
-
-        const intervalId = setInterval(() => {
-            sec--;
-            if (sec >= 0) {
-                counterEl.textContent = sec;
-            } else {
-                clearInterval(intervalId);
-                thinkingEl.remove();
-                thinkingTimer = null;
-
-                isBotThinking = false;
-                enableInput();
-            }
-        }, 1000);
 
         thinkingTimer = {
             element: thinkingEl,
-            intervalId
+            counterEl: thinkingEl.querySelector('.message-loading__counter'),
+            duration
         };
     }
 
@@ -566,6 +605,10 @@
 
         requestAnimationFrame(doScroll);
         setTimeout(doScroll, 60);
+    }
+
+    function getRandomDelay() {
+        return Math.floor(Math.random() * 2001) + 5000;
     }
 
     function getChatId(forceNew = false) {
@@ -619,87 +662,88 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.querySelector('.widget__form');
-        const messageInput = document.querySelector('.message-input');
+    async function handleUserMessage(text) {
+        if (isBotThinking) return;
 
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-                e.preventDefault();
-                form.requestSubmit();
-            }
-        })
+        addMessage(text, 'user');
+        disableInput();
+        hideSuggestions();
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (isBotThinking) return;
-
-            const text = messageInput.value.trim();
-            if (!text) return;
-
-            addMessage(text, 'user');
-            hideSuggestions();
-            messageInput.value = '';
-            messageInput.focus();
+        try {
+            const apiPromise = sendMessageToBackend(text);
 
             if (isFirstUserMessage) {
-                showBotThinking(12);
                 isFirstUserMessage = false;
-            } else {
-                showTypingIndicator();
-            }
 
-            try {
-                const result = await sendMessageToBackend(text);
+                showBotThinking(12);
+                startThinkingCountdown(12, 3);
 
-                hideAnyThinking();
+                const typingDelay = getRandomDelay();
+                const result = await apiPromise;
 
-                if (result?.response) {
-                    addMessage(result.response, 'bot');
-                }
-            } catch {
-                hideAnyThinking();
-                addMessage('Произошла ошибка. Попробуйте позже', 'bot');
-            }
-        });
-
-        document.addEventListener('click', async (e) => {
-            if (e.target.matches('.suggestions-list__item')) {
-                if (isBotThinking) return;
-                e.preventDefault();
-
-                const messageText = e.target.dataset.message || e.target.textContent;
-                if (!messageText.trim()) return;
-
-                addMessage(messageText, 'user');
-
-                hideSuggestions();
-
-
-                if (isFirstUserMessage) {
-                    showBotThinking(12);
-                    isFirstUserMessage = false;
-                } else {
-                    showTypingIndicator();
-                }
-
-                try {
-                    const result = await sendMessageToBackend(messageText);
-
+                setTimeout(() => {
                     hideAnyThinking();
-
                     if (result?.response) {
                         addMessage(result.response, 'bot');
                     }
-                } catch {
-                    hideAnyThinking();
-                    addMessage('Произошла ошибка. Попробуйте позже', 'bot');
-                }
+                }, typingDelay);
+
+                return;
             }
+            setTimeout(() => {
+                showTypingIndicator();
+            }, 3000)
+
+            const typingDelay = getRandomDelay();
+            const result = await apiPromise;
+
+            setTimeout(() => {
+                hideAnyThinking();
+                if (result?.response) {
+                    addMessage(result.response, 'bot');
+                }
+            }, typingDelay);
+        } catch {
+            hideAnyThinking();
+            addMessage('Произошла ошибка. Попробуйте позже', 'bot');
+        }
+    }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('.widget__form');
+            const messageInput = document.querySelector('.message-input');
+
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    form.requestSubmit();
+                }
+            })
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const text = messageInput.value.trim();
+                if (!text) return;
+
+                messageInput.value = '';
+                messageInput.focus();
+            
+                handleUserMessage(text)
+        });
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.suggestions-list__item');
+            if (!btn) return;
+
+            const text = btn.dataset.message || btn.textContent;
+            if (!text.trim()) return;
+
+            handleUserMessage(text);
         });
     });
 
 </script>
-     <!-- =------------------------------ -->
+<!-- =------------------------------ -->
 
 </html>
