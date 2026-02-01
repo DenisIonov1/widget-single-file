@@ -87,6 +87,11 @@
         word-wrap: break-word;
     }
 
+    .message__text--system {
+        border-radius: 11px;
+        margin-left: 47px;
+    }
+
     .suggestions-list {
         display: flex;
         gap: 10px;
@@ -451,6 +456,11 @@
                 <img class="message__logo" src="${LOGO_URL}" alt="${LOGO_ALT}">
                 <div class="message__text">${safeText}</div>
             `;
+        } else if (type === 'system') {
+            messageEl.innerHTML = `
+                <div class="message__text message__text--system">${safeText}</div>
+            `;
+            messageEl.dataset.system = true;
         } else {
             messageEl.innerHTML = `
                 <div class="message__text">${safeText}</div>
@@ -571,6 +581,9 @@
         scrollToBottom();
     }
 
+    function removeSystemMessages() {
+        document.querySelectorAll('[data-system="true"]').forEach(el => el.remove());
+    }
     function disableInput() {
         const textarea = document.querySelector('.message-input');
         const submitBtn = document.querySelector('.message-submit');
@@ -674,11 +687,12 @@
         try {
             const apiPromise = sendMessageToBackend(text);
             const safetyTimeout = setTimeout(() => {
-                if (isBotThinking) {
+                if (!navigator.onLine && isBotThinking) {
                     hideAnyThinking();
-                    addMessage('Проверьте подкдючение к сети.', 'bot');
+                    removeSystemMessages();
+                    addMessage('Проверьте подключение к сети.', 'system');
                 }
-            }, 40000);
+            }, 30000);
 
 
             if (isFirstUserMessage) {
@@ -724,13 +738,14 @@
             clearTimeout(safetyTimeout);
             if (!navigator.onLine || err instanceof TypeError) {
                 hideAnyThinking();
-                
-                addMessage('Проверьте соединение с интернетом', 'bot');
+                removeSystemMessages();
+                addMessage('Проверьте соединение с интернетом', 'system');
                 return;
             }
             hideAnyThinking();
             markMessageAnswered(pendingMsg.id);
-            addMessage('Произошла ошибка. Попробуйте позже.', 'bot');
+            removeSystemMessages();
+            addMessage('Произошла ошибка. Попробуйте позже.', 'system');
         }
     }
 
@@ -740,11 +755,12 @@
         showTypingIndicator();
         
         const safetyTimeout = setTimeout(() => {
-                if (isBotThinking) {
+                if (!navigator.onLine && isBotThinking) {
                     hideAnyThinking();
-                    addMessage('Проверьте подкдючение к сети.', 'bot');
+                    removeSystemMessages();
+                    addMessage('Проверьте подкдючение к сети.', 'system');
                 }
-            }, 40000);
+            }, 30000);
 
         try {
             const result = await sendMessageToBackend(message.text);
@@ -836,6 +852,13 @@
         const pending = [...messages].reverse().find(m => m.type === 'user' && m.status == 'pending');
 
         if (!pending) return;
+        if (!navigator.onLine) {
+            isBotThinking = false;
+            disableInput();
+            removeSystemMessages();
+            addMessage('Проверьте подкдючение к сети', 'system');
+            return
+        }
 
         retryPendingMessages(pending);
 
@@ -863,6 +886,16 @@
 
             handleUserMessage(text)
         });
+
+        window.addEventListener('online',  () => {
+            removeSystemMessages();
+            const messages = getStoredMessages();
+            const pending = [...messages].reverse().find(m => m.type === 'user' && m.status === 'pending');
+
+            if (pending && !isBotThinking) {
+                retryPendingMessages(pending);
+            }
+        })
 
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.suggestions-list__item');
