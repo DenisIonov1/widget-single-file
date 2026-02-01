@@ -425,41 +425,39 @@
     const PROJECTS = '1';
     const LOGO_URL = 'https://denisionov1.github.io/widget_full_screen/img/logo1.png';
     const LOGO_ALT = 'Ассистент';
+
+    const CHAT_ID_KEY = 'chat_user_id';
+    const CHAT_HISTORY_KEY = 'chat_history_v1';
+    const MAX_MESSAGES = 30;
+
     let thinkingTimer = null;
     let isBotThinking = false;
     let isFirstUserMessage = true;
     let typingTimeoutId = null;
     let responseDelayTimeoutId = null;
 
-    function addMessage(text, type, options = {}) {
+    function addMessage(text, type) {
         if (!text?.trim()) return null;
-
+        
         const widgetBody = document.querySelector('.widget__body');
         if (!widgetBody) return null;
 
         const safeText = escapeHtml(text.trim());
-
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${type}`;
 
         if (type === 'bot') {
-            const logoSrc = options.logoSrc || LOGO_URL;
-            const logoAlt = options.logoAlt || LOGO_ALT;
             messageEl.innerHTML = `
-      <img class="message__logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(logoAlt)}">
-      <div class="message__text">${safeText}</div>
-    `;
-        } else if (type === 'user') {
-            messageEl.innerHTML = `
-      <div class="message__text">${safeText}</div>
-    `;
+                <img class="message__logo" src="${LOGO_URL}" alt="${LOGO_ALT}">
+                <div class="message__text">${safeText}</div>
+            `;
         } else {
-            console.warn('Неизвестный тип сообщения:', type);
-            return null;
-        }
+            messageEl.innerHTML = `
+                <div class="message__text">${safeText}</div>
+            `;
+        } 
 
         widgetBody.appendChild(messageEl);
-
         scrollToBottom();
 
         return messageEl;
@@ -483,7 +481,7 @@
             if (!thinkingTimer?.counterEl) return;
             remaining--;
             thinkingTimer.counterEl.textContent = remaining;
-            
+
             if (remaining == onThreshold) {
                 clearInterval(interval);
 
@@ -611,11 +609,13 @@
         return Math.floor(Math.random() * 2001) + 5000;
     }
 
-    function getChatId(forceNew = false) {
-        if (forceNew || !window.currentChatId) {
-            window.currentChatId = crypto.randomUUID();
+    function getChatId() {
+        let chatId = localStorage.getItem(CHAT_ID_KEY);
+        if (!chatId) {
+            chatId = crypto.randomUUID();
+            localStorage.setItem(CHAT_ID_KEY, chatId);
         }
-        return window.currentChatId;
+        return chatId;
     }
 
     function generateMessageId() {
@@ -632,7 +632,7 @@
                     projects: PROJECTS,
                     type: 'text',
                     status: 'inbound',
-                    text: text,
+                    text,
                     timestamp: Math.floor(Date.now() / 1000)
                 }
             ]
@@ -664,13 +664,22 @@
 
     async function handleUserMessage(text) {
         if (isBotThinking) return;
-
+        
+        isBotThinking = true;
+        const pendingMsg = saveUserMessage(text);
         addMessage(text, 'user');
         disableInput();
         hideSuggestions();
 
         try {
             const apiPromise = sendMessageToBackend(text);
+            const safetyTimeout = setTimeout(() => {
+                if (isBotThinking) {
+                    hideAnyThinking();
+                    addMessage('Проверьте подкдючение к сети.', 'bot');
+                }
+            }, 20000);
+
 
             if (isFirstUserMessage) {
                 isFirstUserMessage = false;
@@ -680,10 +689,13 @@
 
                 const typingDelay = getRandomDelay();
                 const result = await apiPromise;
+                clearTimeout(safetyTimeout);
 
                 setTimeout(() => {
                     hideAnyThinking();
                     if (result?.response) {
+                        markMessageAnswered(pendingMsg.id);
+                        saveBotMessage(result.response);
                         addMessage(result.response, 'bot');
                     }
                 }, typingDelay);
@@ -691,45 +703,156 @@
                 return;
             }
             setTimeout(() => {
-                showTypingIndicator();
+                if (isBotThinking) {
+                   showTypingIndicator();  
+                }
             }, 3000)
 
             const typingDelay = getRandomDelay();
             const result = await apiPromise;
+            clearTimeout(safetyTimeout);
 
             setTimeout(() => {
                 hideAnyThinking();
                 if (result?.response) {
+                    markMessageAnswered(pendingMsg.id);
+                    saveBotMessage(result.response);
                     addMessage(result.response, 'bot');
                 }
             }, typingDelay);
-        } catch {
+        } catch (err) {
+            clearTimeout(safetyTimeout);
+            if (!navigator.onLine || err instanceof TypeError) {
+                hideAnyThinking();
+                
+                addMessage('Проверьте соединение с интернетом', 'bot');
+                return;
+            }
             hideAnyThinking();
-            addMessage('Произошла ошибка. Попробуйте позже', 'bot');
+            markMessageAnswered(pendingMsg.id);
+            addMessage('Произошла ошибка. Попробуйте позже.', 'bot');
         }
     }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('.widget__form');
-            const messageInput = document.querySelector('.message-input');
+    async function retryPendingMessages(message) {
+        disableInput();
+        showTypingIndicator();
 
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-                    e.preventDefault();
-                    form.requestSubmit();
+        try {
+            const result = await sendMessageToBackend(message.text);
+
+            const typingDelay = getRandomDelay();
+
+            setTimeout(() => {
+                hideAnyThinking();
+
+                if (result?.response) {
+                    markMessageAnswered(message.id);
+                    saveBotMessage(result.response);
+                    addMessage(result.response, 'bot');
                 }
-            })
+            }, typingDelay);
 
-            form.addEventListener('submit', (e) => {
+        } catch {
+            hideAnyThinking();
+        }
+    }
+
+    function getStoredMessages() {
+        return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY)) || [];
+    }
+
+    function saveMessages(messages) {
+        localStorage.setItem(
+            CHAT_HISTORY_KEY,
+            JSON.stringify(messages.slice(-MAX_MESSAGES))
+        )
+    }
+
+    function saveUserMessage(text) {
+        const messages = getStoredMessages();
+        const msg = {
+            id: crypto.randomUUID(),
+            chatId: getChatId(),
+            type: 'user',
+            text,
+            status: 'pending',
+            timestamp: Date.now()
+        };
+
+        messages.push(msg);
+        saveMessages(messages);
+
+        return msg;
+    }
+
+    function saveBotMessage(text) {
+        const messages = getStoredMessages();
+        messages.push({
+            id: crypto.randomUUID(),
+            chatId: getChatId(),
+            type: 'bot',
+            text,
+            status: 'answered',
+            timestamp: Date.now()
+        });
+
+        saveMessages(messages);
+    }
+
+    function markMessageAnswered(messageId) {
+        const messages = getStoredMessages();
+        const msg = messages.find(m => m.id === messageId);
+        if (msg) {
+            msg.status = 'answered';
+            saveMessages(messages);
+        }
+    }
+
+    function restoreChatAndRetry() {
+        const messages = getStoredMessages();
+        if (!messages.length) return;
+
+        const hasUserMessage = messages.some(m => m.type === 'user');
+
+        if (hasUserMessage) {
+            hideSuggestions();
+            isFirstUserMessage = false;  
+        }
+
+        messages.forEach(msg => {
+            addMessage(msg.text, msg.type, { skipSave: true });
+        });
+
+        const pending = [...messages].reverse().find(m => m.type === 'user' && m.status == 'pending');
+
+        if (!pending) return;
+
+        retryPendingMessages(pending);
+
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('.widget__form');
+        const messageInput = document.querySelector('.message-input');
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
-                
-                const text = messageInput.value.trim();
-                if (!text) return;
+                form.requestSubmit();
+            }
+        })
 
-                messageInput.value = '';
-                messageInput.focus();
-            
-                handleUserMessage(text)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            messageInput.value = '';
+            messageInput.focus();
+
+            handleUserMessage(text)
         });
 
         document.addEventListener('click', (e) => {
@@ -741,6 +864,7 @@
 
             handleUserMessage(text);
         });
+        restoreChatAndRetry();
     });
 
 </script>
