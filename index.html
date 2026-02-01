@@ -678,7 +678,7 @@
                     hideAnyThinking();
                     addMessage('Проверьте подкдючение к сети.', 'bot');
                 }
-            }, 20000);
+            }, 40000);
 
 
             if (isFirstUserMessage) {
@@ -736,10 +736,19 @@
 
     async function retryPendingMessages(message) {
         disableInput();
+        isBotThinking = true;
         showTypingIndicator();
+        
+        const safetyTimeout = setTimeout(() => {
+                if (isBotThinking) {
+                    hideAnyThinking();
+                    addMessage('Проверьте подкдючение к сети.', 'bot');
+                }
+            }, 40000);
 
         try {
             const result = await sendMessageToBackend(message.text);
+            clearTimeout(safetyTimeout);
 
             const typingDelay = getRandomDelay();
 
