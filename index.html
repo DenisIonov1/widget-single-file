@@ -399,7 +399,8 @@
                 <img class="message__logo" src="https://denisionov1.github.io/widget_full_screen/img/logo1.png"
                     alt="Ассистент">
 
-                <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
+                <div class="message__text">Здравствуйте! Помогу Вам с выбором квартиры в нашем жилом комплексе. Скажите
+                    пожалуйста, что Вас интересует?</div>
             </div>
             <div class="suggestions-list">
                 <button class="suggestions-list__item" id="learn-more" data-message="Узнать больше о ЖК">Узнать
@@ -435,6 +436,8 @@
     const CHAT_HISTORY_KEY = 'chat_history_v1';
     const MAX_MESSAGES = 30;
 
+    let activeRequestId = 0;
+    let safetyTimeout = null;
     let thinkingTimer = null;
     let isBotThinking = false;
     let isFirstUserMessage = true;
@@ -443,7 +446,7 @@
 
     function addMessage(text, type) {
         if (!text?.trim()) return null;
-        
+
         const widgetBody = document.querySelector('.widget__body');
         if (!widgetBody) return null;
 
@@ -465,7 +468,7 @@
             messageEl.innerHTML = `
                 <div class="message__text">${safeText}</div>
             `;
-        } 
+        }
 
         widgetBody.appendChild(messageEl);
         scrollToBottom();
@@ -677,8 +680,9 @@
 
     async function handleUserMessage(text) {
         if (isBotThinking) return;
-        
+
         isBotThinking = true;
+        const requestId = ++activeRequestId;
         const pendingMsg = saveUserMessage(text);
         addMessage(text, 'user');
         disableInput();
@@ -686,7 +690,11 @@
 
         try {
             const apiPromise = sendMessageToBackend(text);
-            const safetyTimeout = setTimeout(() => {
+            if (safetyTimeout) {
+                clearTimeout(safetyTimeout);
+                safetyTimeout = null;
+            }
+            safetyTimeout = setTimeout(() => {
                 if (!navigator.onLine && isBotThinking) {
                     hideAnyThinking();
                     removeSystemMessages();
@@ -703,8 +711,12 @@
 
                 const typingDelay = getRandomDelay();
                 const result = await apiPromise;
+                if (requestId !== activeRequestId) {
+                    return;
+                }
                 clearTimeout(safetyTimeout);
-
+                safetyTimeout = null;
+                
                 setTimeout(() => {
                     hideAnyThinking();
                     if (result?.response) {
@@ -718,13 +730,17 @@
             }
             setTimeout(() => {
                 if (isBotThinking) {
-                   showTypingIndicator();  
+                    showTypingIndicator();
                 }
             }, 3000)
 
             const typingDelay = getRandomDelay();
             const result = await apiPromise;
+            if (requestId !== activeRequestId) {
+                    return;
+                }
             clearTimeout(safetyTimeout);
+            safetyTimeout = null;
 
             setTimeout(() => {
                 hideAnyThinking();
@@ -735,7 +751,12 @@
                 }
             }, typingDelay);
         } catch (err) {
+            if (requestId !== activeRequestId) {
+                return;
+            }
+
             clearTimeout(safetyTimeout);
+            safetyTimeout = null;
             if (!navigator.onLine || err instanceof TypeError) {
                 hideAnyThinking();
                 removeSystemMessages();
@@ -753,18 +774,27 @@
         disableInput();
         isBotThinking = true;
         showTypingIndicator();
-        
-        const safetyTimeout = setTimeout(() => {
-                if (!navigator.onLine && isBotThinking) {
-                    hideAnyThinking();
-                    removeSystemMessages();
-                    addMessage('Проверьте подкдючение к сети.', 'system');
-                }
-            }, 30000);
+        const requestId = ++activeRequestId;
+        if (safetyTimeout) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
+        }
+
+        safetyTimeout = setTimeout(() => {
+            if (!navigator.onLine && isBotThinking) {
+                hideAnyThinking();
+                removeSystemMessages();
+                addMessage('Проверьте подключение к сети.', 'system');
+            }
+        }, 30000);
 
         try {
             const result = await sendMessageToBackend(message.text);
+            if (requestId !== activeRequestId) {
+                return;
+            }
             clearTimeout(safetyTimeout);
+            safetyTimeout = null;
 
             const typingDelay = getRandomDelay();
 
@@ -778,8 +808,13 @@
                 }
             }, typingDelay);
 
-        } catch {
+        } catch (err) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
+
             hideAnyThinking();
+            removeSystemMessages();
+            addMessage('Проверьте подключение к сети', 'system')
         }
     }
 
@@ -842,7 +877,7 @@
 
         if (hasUserMessage) {
             hideSuggestions();
-            isFirstUserMessage = false;  
+            isFirstUserMessage = false;
         }
 
         messages.forEach(msg => {
@@ -853,10 +888,10 @@
 
         if (!pending) return;
         if (!navigator.onLine) {
-            isBotThinking = false;
+            hideAnyThinking();
             disableInput();
             removeSystemMessages();
-            addMessage('Проверьте подкдючение к сети', 'system');
+            addMessage('Проверьте подключение к сети', 'system');
             return
         }
 
@@ -875,6 +910,22 @@
             }
         })
 
+        window.addEventListener('online', () => {
+            if (safetyTimeout) {
+                clearTimeout(safetyTimeout);
+                safetyTimeout = null;
+            }
+            removeSystemMessages();
+            const messages = getStoredMessages();
+            const pending = [...messages].reverse().find(m => m.type === 'user' && m.status === 'pending');
+
+            if (pending && !isBotThinking) {
+                retryPendingMessages(pending);
+            } else {
+                enableInput();
+            }
+        })
+
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
@@ -886,16 +937,6 @@
 
             handleUserMessage(text)
         });
-
-        window.addEventListener('online',  () => {
-            removeSystemMessages();
-            const messages = getStoredMessages();
-            const pending = [...messages].reverse().find(m => m.type === 'user' && m.status === 'pending');
-
-            if (pending && !isBotThinking) {
-                retryPendingMessages(pending);
-            }
-        })
 
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.suggestions-list__item');
