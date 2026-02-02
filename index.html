@@ -641,6 +641,10 @@
         return crypto.randomUUID();
     }
 
+    function getWidgetLocation() {
+        return window.location.href;
+    }
+
     function buildMessagePayload(text) {
         return {
             messages: [
@@ -652,7 +656,8 @@
                     type: 'text',
                     status: 'inbound',
                     text,
-                    timestamp: Math.floor(Date.now() / 1000)
+                    timestamp: Math.floor(Date.now() / 1000),
+                    sender: getWidgetLocation()
                 }
             ]
         }
@@ -660,7 +665,7 @@
 
     async function sendMessageToBackend(text) {
         const payload = buildMessagePayload(text);
-
+        console.log(payload);
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
