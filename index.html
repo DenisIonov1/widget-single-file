@@ -430,6 +430,7 @@
     </div>
 </div>
 <script>
+    const BACKEND_PORT = 5009;
     const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
     const PROJECTS = '1';
     const LOGO_URL = 'https://denisionov1.github.io/widget_full_screen/img/logo1.png';
@@ -657,7 +658,8 @@
                     status: 'inbound',
                     text,
                     timestamp: Math.floor(Date.now() / 1000),
-                    sender: getWidgetLocation()
+                    sender: getWidgetLocation(),
+                    port: `https://sr.neuro7.pro:${BACKEND_PORT}/webhook/widget`
                 }
             ]
         }
@@ -935,7 +937,6 @@
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-
             const text = messageInput.value.trim();
             if (!text) return;
 
