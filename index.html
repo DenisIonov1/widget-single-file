@@ -20,7 +20,7 @@
         backendPort: 5009,
         project: 'ЖК',
         logoUrl: 'https://sr.neuro7.pro/static/logo1.png',
-        apiURL: 'https://sr.neuro7.pro:5009/webhook/widget'
+        apiUrl: 'https://sr.neuro7.pro:5009/webhook/widget'
     }
  </script>
  <!-- КОД ВИДЖЕТА -->
@@ -438,11 +438,23 @@
     </div>
 </div>
 <script>
+(function(){
+    if (!window.N7_WIDGET_CONFIG) {
+        console.error("N7 Widget: Конфигурация не добавлена");
+        return;
+    }
     const CONFIG = window.N7_WIDGET_CONFIG;
+
     const BACKEND_PORT = CONFIG.backendPort;
     const PROJECTS = CONFIG.project;
     const LOGO_URL = CONFIG.logoUrl;    
-    const API_URL = CONFIG.apiURL;
+    const API_URL = CONFIG.apiUrl;
+
+    if (BACKEND_PORT == null || !PROJECTS || !LOGO_URL || !API_URL) {
+        console.error("N7 Widget: в конфигурации есть незаполненные поля");
+        return;
+    }
+
     const LOGO_ALT = 'Ассистент';
 
     const CHAT_ID_KEY = 'chat_user_id';
@@ -1006,7 +1018,7 @@
 
         restoreChatAndRetry();
     });
-
+})();
 </script>
 <!-- =------------------------------ -->
 
