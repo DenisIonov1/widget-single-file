@@ -11,9 +11,9 @@
     const BACKEND_PORT = CONFIG.backendPort;
     const PROJECTS = CONFIG.project;
     const LOGO_URL = CONFIG.logoUrl;
-    const API_URL = CONFIG.apiUrl;
+    const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
 
-    if (BACKEND_PORT == null || !PROJECTS || !LOGO_URL || !API_URL) {
+    if (BACKEND_PORT == null || !PROJECTS || !LOGO_URL) {
         console.error("N7 Widget: в конфигурации есть незаполненные поля");
         return;
     }
@@ -808,17 +808,6 @@
                 clearTimeout(safetyTimeout);
                 safetyTimeout = null;
 
-                if (!typingStartedAt) {
-                    if (thinkingTimer?.element) {
-                        thinkingTimer.element.remove();
-                        if (thinkingTimer.intervalId) {
-                            clearInterval(thinkingTimer.intervalId);
-                        }
-                        thinkingTimer = null;
-                    }
-                    showTypingIndicator();
-                }
-
                 hideTypingWithMinDelay(() => {
                     if (result?.response) {
                         markMessageAnswered(pendingMsg.id);
@@ -830,12 +819,9 @@
                 return;
             }
 
-            setTimeout(() => {
-                if (isBotThinking) {
-                    showTypingIndicator();
-                }
-            }, 3000)
-
+            await new Promise(r => setTimeout(r, 3000));
+            showTypingIndicator();
+            
             const result = await apiPromise;
             if (requestId !== activeRequestId) {
                 return;
