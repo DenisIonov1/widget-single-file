@@ -638,25 +638,6 @@
         };
     }
 
-    function startThinkingCountdown(seconds, onThreshold) {
-        let remaining = seconds;
-
-        const interval = setInterval(() => {
-            if (!thinkingTimer?.counterEl) return;
-            remaining--;
-            thinkingTimer.counterEl.textContent = remaining;
-
-            if (remaining == onThreshold) {
-                clearInterval(interval);
-                thinkingTimer.element?.remove();
-                thinkingTimer = null;
-                showTypingIndicator();
-            }
-        }, 1000);
-
-        thinkingTimer.intervalId = interval;
-    }
-
     function showTypingIndicator() {
         const widgetBody = document.querySelector('.n7-widget__body');
         if (!widgetBody) return;
@@ -798,7 +779,23 @@
                 isFirstUserMessage = false;
 
                 showBotThinking(12);
-                startThinkingCountdown(12, 3);
+
+                await new Promise(resolve => {
+                    let remaining = 12;
+                    const interval = setInterval(() => {
+                        remaining--;
+                        if (thinkingTimer?.counterEl) {
+                            thinkingTimer.counterEl.textContent = remaining;
+                        }
+                        if (remaining <= 4) {
+                            clearInterval(interval);
+                            thinkingTimer?.element?.remove();
+                            resolve();
+                        }
+                    }, 1000);
+                });
+
+                showTypingIndicator();
 
                 const result = await apiPromise;
                 if (requestId !== activeRequestId) {
