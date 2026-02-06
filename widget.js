@@ -466,7 +466,7 @@
     }
 
     function getRandomDelay() {
-        return Math.floor(Math.random() * 3) + 12;
+        return Math.floor(Math.random() * 3001) + 12000;
     }
 
     function generateMessageId() {
