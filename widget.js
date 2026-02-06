@@ -787,7 +787,7 @@
                         if (thinkingTimer?.counterEl) {
                             thinkingTimer.counterEl.textContent = remaining;
                         }
-                        if (remaining <= 4) {
+                        if (remaining <= 3) {
                             clearInterval(interval);
                             thinkingTimer?.element?.remove();
                             resolve();
