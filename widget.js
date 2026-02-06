@@ -948,7 +948,7 @@
         retryPendingMessages(pending);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initWidget() {
         applyLogo();
 
         const form = document.querySelector('.n7-form');
@@ -959,7 +959,7 @@
                 e.preventDefault();
                 form.requestSubmit();
             }
-        })
+        });
 
         window.addEventListener('online', () => {
             if (safetyTimeout) {
@@ -976,7 +976,7 @@
             } else {
                 enableInput();
             }
-        })
+        });
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1000,11 +1000,16 @@
         });
 
         restoreChatAndRetry();
-    });
+    }
+
+    function mountAndInit() {
+        mountWidget();
+        initWidget();
+    }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", mountWidget);
+        document.addEventListener("DOMContentLoaded", mountAndInit);
     } else {
-        mountWidget();
+        mountAndInit();
     }
 })();
