@@ -1,4 +1,7 @@
 (function () {
+    if (window.N7_WIDGET_LOADED) return;
+    window.N7_WIDGET_LOADED = true;
+
     if (!window.N7_WIDGET_CONFIG) {
         console.error("N7 Widget: Конфигурация не добавлена");
         return;
@@ -409,6 +412,8 @@
     document.head.appendChild(style);
 
     const wrapper = document.createElement("div");
+    wrapper.className = "n7-widget";
+
     wrapper.innerHTML = `
         <div class="n7-widget__body" role="log" aria-live="polite">
             <div class="n7-message n7-message--bot">
@@ -443,7 +448,9 @@
     </div>
     `;
 
-    document.body.appendChild(wrapper);
+    function mountWidget() {
+        document.body.appendChild(wrapper);
+    }
 
     function escapeHtml(str) {
         const el = document.createElement('div');
@@ -829,7 +836,6 @@
                 }
             }, 3000)
 
-            const typingDelay = getRandomDelay();
             const result = await apiPromise;
             if (requestId !== activeRequestId) {
                 return;
@@ -995,4 +1001,10 @@
 
         restoreChatAndRetry();
     });
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", mountWidget);
+    } else {
+        mountWidget();
+    }
 })();
