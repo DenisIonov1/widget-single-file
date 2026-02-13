@@ -138,6 +138,7 @@
 
         .n7-widget-social-menu {
             position: fixed;
+            background-color: #fff;
             bottom: 90px;
             right: 20px;
             width: 255px;
