@@ -1313,10 +1313,11 @@
     });
     
     launcher.menu.addEventListener('click', function(e) {
-        if (e.target.classList.closest('n7-social-item')) {
-            launcher.toggleBtn.classList.remove("animation-complete");
-            launcher.toggleBtn.classList.remove("open");
-        }
+        const item = e.target.closest('.n7-social-item');
+        if (!item) return;
+        
+        launcher.toggleBtn.classList.remove("animation-complete");
+        launcher.toggleBtn.classList.remove("open");
     });
 
     setTimeout(() => {
