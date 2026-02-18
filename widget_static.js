@@ -39,7 +39,7 @@
             transform: translate(-50%);
             max-width: 420px;
             width: min(100vw, 420px);
-            height: min(85dvh, 492px);
+            height: min(85dvh, 470px);
             display: flex;
             flex-direction: column;
             background-color: rgba(28, 25, 24, 0.6);
@@ -398,7 +398,7 @@
 
         @media (max-width: 480px) {
             .n7-widget {
-                height: 70dvh;
+                height: 65dvh;
             }
 
             .n7-widget__body {
@@ -420,7 +420,7 @@
     wrapper.className = "n7-widget";
 
     wrapper.innerHTML = `
-        <div class="n7-widget__title">Напишите специалисту</div>
+        <div class="n7-widget__title">Задайте вопрос оператору</div>
         <div class="n7-widget__body" role="log" aria-live="polite">
             <div class="n7-message n7-message--bot">
 
