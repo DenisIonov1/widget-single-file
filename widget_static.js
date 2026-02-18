@@ -1,429 +1,442 @@
-<!DOCTYPE html>
-<html lang="en">
+(function () {
+    if (window.N7_WIDGET_LOADED) return;
+    window.N7_WIDGET_LOADED = true;
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-
-<body style="background: antiquewhite;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  height: 100vh;">
-</body>
-<!-- --------------------------------- -->
-<!-- КОНФИГУРАЦИЯ -->
- <script>
-    window.N7_WIDGET_CONFIG = {
-        backendPort: 5009,
-        project: 'ЖК',
-        logoUrl: 'https://sr.neuro7.pro/static/logo1.png'
+    if (!window.N7_WIDGET_CONFIG) {
+        console.error("N7 Widget: Конфигурация не добавлена");
+        return;
     }
- </script>
+    const CONFIG = window.N7_WIDGET_CONFIG;
 
-<script src="widget_static.js" async></script>
+    const PROJECTS = CONFIG.project;
+    const LOGO_URL = CONFIG.logoUrl;
+    const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
 
-  
- <!-- КОД ВИДЖЕТА -->
-<!-- <style>
-    .n7-widget {
-        font-family: "Arial", sans-serif;
-        position: fixed;
-        bottom: 0px;
-        left: 50%;
-        transform: translate(-50%);
-        max-width: 420px;
-        width: min(100vw, 420px);
-        height: min(85dvh, 450px);
-        display: flex;
-        flex-direction: column;
-        background-color: transparent;
-        border-radius: 16px;
-        z-index: 222229998;
+    if (!PROJECTS || !LOGO_URL) {
+        console.error("N7 Widget: в конфигурации есть незаполненные поля");
+        return;
     }
 
-    .n7-widget__body {
-        flex: 1;
-        min-height: 200px;
-        overflow-y: auto;
-        font-size: 15px;
-        display: flex;
-        flex-direction: column;
-        row-gap: 10px;
-        padding: 15px;
-        justify-content: flex-start;
-        scrollbar-width: none;
-    }
+    const LOGO_ALT = 'Ассистент';
+    const CHAT_ID_KEY = 'chat_user_id';
+    const CHAT_HISTORY_KEY = 'chat_history_v1';
+    const MAX_MESSAGES = 30;
 
-    .n7-message {
-        display: flex;
-    }
+    let activeRequestId = 0;
+    let safetyTimeout = null;
+    let thinkingTimer = null;
+    let typingStartedAt = null;
+    let isBotThinking = false;
+    let isFirstUserMessage = true;
 
-    .n7-message__logo {
-        width: 37px;
-        height: 37px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .n7-message__text {
-        white-space: pre-wrap;
-        padding: 6px 10px;
-        width: fit-content;
-        max-width: min(80%, 600px);
-        background-color: #F2F2F2;
-        border-radius: 11px 11px 11px 3px;
-        overflow-wrap: break-word;
-        word-break: break-word;
-        line-height: 1.3;
-    }
-
-    .n7-message__text--first {
-        white-space: normal;
-
-    }
-
-    .n7-message--bot {
-        gap: 10px;
-        justify-content: flex-start;
-        align-items: end;
-        animation: typingFadeIn 0.3s ease-out;
-    }
-
-    .n7-message--user {
-        justify-content: flex-end;
-        animation: typingFadeIn 0.2s ease-out;
-    }
-
-    .n7-message--bot .n7-message__text {
-        border-radius: 11px 11px 11px 3px;
-        color: #222d38;
-        word-wrap: break-word;
-    }
-
-    .n7-message--user .n7-message__text {
-        border-radius: 11px 11px 3px 11px;
-        background-color: #3A3A3A;
-        color: #fff;
-        word-wrap: break-word;
-    }
-
-    .n7-message__text--system {
-        border-radius: 11px;
-        margin-left: 47px;
-    }
-
-    .n7-suggestions-list {
-        display: flex;
-        gap: 10px;
-        flex-direction: column;
-        align-items: flex-end;
-    }
-
-    .n7-suggestions-list__item {
-        position: relative;
-        overflow: hidden;
-        font-size: 15px;
-        font-family: "Arial", sans-serif;
-        color: #222d38;
-        background-color: #ffffff;
-        padding: 6px 10px;
-        border-radius: 11px;
-        border: 1px solid #222d38;
-        transition: all 0.2s;
-        cursor: pointer;
-        transition: background-color 0.2s, transform 0.2s;
-        box-shadow: 1px 1px 5px 1px rgba(173, 170, 170, 0.619)
-    }
-
-    .n7-suggestions-list__item::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -120%;
-        width: 40%;
-        height: 100%;
-        background: linear-gradient(120deg,
-                transparent,
-                rgba(223, 214, 214, 0.878),
-                transparent);
-        animation: shine 3.5s infinite;
-    }
-
-    .n7-suggestions-list__item:hover {
-        background-color: #e7e6e6;
-    }
-
-    .n7-suggestions-list__item:active {
-        background-color: #ffffff;
-        transform: scale(1.02);
-    }
-
-    .n7-widget__description {
-        font-size: 12px;
-        text-decoration: underline;
-        margin: 0;
-        padding: 4px;
-        background-color: #F2F2F2;
-        border-radius: 11px;
-        text-align: center;
-    }
-
-    .n7-bot-thinking {
-        display: flex;
-        gap: 10px;
-        align-items: end;
-        color: #666;
-        animation: typingFadeIn 0.5s ease-out;
-    }
-
-    .n7-message-loading {
-        display: flex;
-        gap: 4px;
-        padding: 6px 10px;
-        max-width: 320px;
-        background-color: #F2F2F2;
-        border-radius: 11px 11px 11px 11px;
-        align-items: center;
-    }
-
-    .n7-message-loading__dot {
-        height: 6px;
-        width: 6px;
-        border-radius: 50%;
-        opacity: 0.7;
-        background: #a9a9aa;
-        animation: dotPulse 1.8s ease-in-out infinite;
-    }
-
-    .n7-message-loading__dot:nth-child(1) {
-        animation-delay: 0.2s;
-    }
-
-    .n7-message-loading__dot:nth-child(2) {
-        animation-delay: 0.3s;
-    }
-
-    .n7-message-loading__dot:nth-child(3) {
-        animation-delay: 0.4s;
-    }
-
-    .n7-form {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-    }
-
-    .n7-footer {
-        flex-shrink: 0;
-        padding: 10px 15px;
-    }
-
-    .n7-input {
-        font-family: "Arial", sans-serif;
-        font-size: 15px;
-        flex: 1;
-        min-width: 0;
-        height: 38px;
-        border-radius: 18px;
-        border: 1px solid #ddd;
-        background-color: #fff;
-        padding: 10px;
-        resize: none;
-        outline: none;
-        box-sizing: border-box;
-        scrollbar-width: none;
-    }
-
-    .n7-input:focus {
-        border-color: #3A3A3A;
-    }
-
-    .n7-submit {
-        width: 38px;
-        height: 38px;
-        background-color: transparent;
-        border: none;
-        padding: 0;
-        cursor: pointer;
-        border-radius: 50%;
-        transform: 0.1s;
-        flex-shrink: 0;
-    }
-
-    .n7-submit__bg {
-        fill: #3A3A3A;
-        transition: fill 0.2s;
-    }
-
-    .n7-submit__icon {
-        fill: white;
-        transition: fill 0.2s;
-    }
-
-    .n7-submit:hover .n7-submit__bg {
-        fill: #555;
-    }
-
-    .n7-submit:hover {
-        transform: scale(1.05);
-    }
-
-    .n7-submit:active {
-        transform: scale(0.95);
-    }
-
-    .n7-submit:active .n7-submit__bg {
-        fill: #222;
-    }
-
-    @media (max-width: 780px) {
-        .n7-input {
-            font-size: 16px;
+    const style = document.createElement("style");
+    style.textContent = `
+        .n7-widget {
+            font-family: "Arial", sans-serif;
+            position: fixed;
+            bottom: 0px;
+            left: 50%;
+            transform: translate(-50%);
+            max-width: 420px;
+            width: min(100vw, 420px);
+            height: min(85dvh, 492px);
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(28, 25, 24, 0.6);
+            border-radius: 11px 11px 0 0;
+            z-index: 222229998;
         }
 
-        .n7-widget {
-            margin: 0;
+        .n7-widget__title {
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            user-select: none;
         }
 
         .n7-widget__body {
             flex: 1;
-            min-height: 0;
-            padding: 15px;
+            min-height: 200px;
+            overflow-y: auto;
+            font-size: 15px;
+            display: flex;
+            flex-direction: column;
+            row-gap: 10px;
+            padding: 0 15px;
+            justify-content: flex-start;
+            scrollbar-width: none;
+        }
+
+        .n7-message {
+            display: flex;
+        }
+
+        .n7-message__logo {
+            width: 37px;
+            height: 37px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .n7-message__text {
+            white-space: pre-wrap;
+            padding: 6px 10px;
+            width: fit-content;
+            max-width: min(80%, 600px);
+            background-color: #F2F2F2;
+            border-radius: 11px 11px 11px 3px;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .n7-message__text--first {
+            white-space: normal;
+        }
+
+        .n7-message--bot {
+            gap: 10px;
+            justify-content: flex-start;
+            align-items: end;
+            animation: typingFadeIn 0.3s ease-out;
+        }
+
+        .n7-message--user {
+            justify-content: flex-end;
+            animation: typingFadeIn 0.2s ease-out;
+        }
+
+        .n7-message--bot .n7-message__text {
+            border-radius: 11px 11px 11px 3px;
+            color: #222d38;
+            word-wrap: break-word;
+        }
+
+        .n7-message--user .n7-message__text {
+            border-radius: 11px 11px 3px 11px;
+            background-color: #3A3A3A;
+            color: #fff;
+            word-wrap: break-word;
+        }
+
+        .n7-message__text--system {
+            border-radius: 11px;
+            margin-left: 47px;
+        }
+
+        .n7-suggestions-list {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .n7-suggestions-list__item {
+            position: relative;
+            overflow: hidden;
+            font-size: 15px;
+            font-family: "Arial", sans-serif;
+            color: #222d38;
+            background-color: #ffffff;
+            padding: 6px 10px;
+            border-radius: 11px;
+            border: 1px solid #222d38;
+            transition: all 0.2s;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 1px 1px 5px 1px rgba(173, 170, 170, 0.619)
+        }
+
+        .n7-suggestions-list__item::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(120deg,
+                    transparent,
+                    rgba(223, 214, 214, 0.878),
+                    transparent);
+            animation: shine 3.5s infinite;
+        }
+
+        .n7-suggestions-list__item:hover {
+            background-color: #e7e6e6;
+        }
+
+        .n7-suggestions-list__item:active {
+            background-color: #ffffff;
+            transform: scale(1.02);
+        }
+
+        .n7-widget__description {
+            font-size: 12px;
+            text-decoration: underline;
+            margin: 0;
+            padding: 4px;
+            background-color: #F2F2F2;
+            border-radius: 11px;
+            text-align: center;
+        }
+
+        .n7-bot-thinking {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+            color: #666;
+            animation: typingFadeIn 0.5s ease-out;
+        }
+
+        .n7-message-loading {
+            display: flex;
+            gap: 4px;
+            padding: 6px 10px;
+            max-width: 320px;
+            background-color: #F2F2F2;
+            border-radius: 11px 11px 11px 11px;
+            align-items: center;
+        }
+
+        .n7-message-loading__dot {
+            height: 6px;
+            width: 6px;
+            border-radius: 50%;
+            opacity: 0.7;
+            background: #a9a9aa;
+            animation: dotPulse 1.8s ease-in-out infinite;
+        }
+
+        .n7-message-loading__dot:nth-child(1) {
+            animation-delay: 0.2s;
+        }
+
+        .n7-message-loading__dot:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        .n7-message-loading__dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .n7-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
         }
 
         .n7-footer {
+            flex-shrink: 0;
             padding: 10px 15px;
         }
 
         .n7-input {
-            line-height: 1;
-        }
-    }
-
-    .n7-typing {
-        width: 12px;
-        height: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .n7-pencil {
-        width: 12px;
-        height: 12px;
-        display: flex;
-        align-items: center;
-        animation: write 1.5s infinite ease-in-out;
-        transform-origin: bottom left;
-    }
-
-    @keyframes shine {
-        0% {
-            left: -120%;
+            font-family: "Arial", sans-serif;
+            font-size: 15px;
+            flex: 1;
+            min-width: 0;
+            height: 38px;
+            border-radius: 18px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            padding: 10px;
+            resize: none;
+            outline: none;
+            box-sizing: border-box;
+            scrollbar-width: none;
         }
 
-        60% {
-            left: 120%;
+        .n7-input:focus {
+            border-color: #3A3A3A;
         }
 
-        100% {
-            left: 120%;
-        }
-    }
-
-    @keyframes write {
-        0% {
-            transform: translateX(0) rotate(0deg);
-        }
-
-        25% {
-            transform: translateX(4px) rotate(-10deg);
+        .n7-submit {
+            width: 38px;
+            height: 38px;
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            border-radius: 50%;
+            transform: 0.1s;
+            flex-shrink: 0;
         }
 
-        50% {
-            transform: translateX(8px) rotate(5deg);
+        .n7-submit__bg {
+            fill: #3A3A3A;
+            transition: fill 0.2s;
         }
 
-        75% {
-            transform: translateX(4px) rotate(-10deg);
+        .n7-submit__icon {
+            fill: white;
+            transition: fill 0.2s;
         }
 
-        100% {
-            transform: translateX(0) rotate(0deg);
-        }
-    }
-
-    @keyframes typingFadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(6px) scale(0.98);
+        .n7-submit:hover .n7-submit__bg {
+            fill: #555;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    @keyframes dotPulse {
-
-        0%,
-        44% {
-            transform: translateY(0);
+        .n7-submit:hover {
+            transform: scale(1.05);
         }
 
-        28% {
-            opacity: 0.4;
-            transform: translateY(-4px);
+        .n7-submit:active {
+            transform: scale(0.95);
         }
 
-        44% {
-            opacity: 0.2;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .n7-widget {
-            height: 70dvh;
-            border-radius: 0;
+        .n7-submit:active .n7-submit__bg {
+            fill: #222;
         }
 
-        .n7-widget__body {
-            padding: 12px 15px 20px;
+        @media (max-width: 780px) {
+            .n7-input {
+                font-size: 16px;
+            }
+
+            .n7-widget {
+                margin: 0;
+            }
+
+            .n7-widget__body {
+                flex: 1;
+                min-height: 0;
+            }
+
+            .n7-footer {
+                padding: 10px 15px;
+            }
+
+            .n7-input {
+                line-height: 1;
+            }
         }
-    }
 
-    @media (max-width: 415px) {
-        .n7-widget__description {
-            width: fit-content;
-            max-width: 290px;
-            align-self: center;
+        .n7-typing {
+            width: 12px;
+            height: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-    }
-</style>
 
-<div class="n7-widget">
-    <div class="n7-widget__body" role="log" aria-live="polite">
-        <div class="n7-message n7-message--bot">
+        .n7-pencil {
+            width: 12px;
+            height: 12px;
+            display: flex;
+            align-items: center;
+            animation: write 1.5s infinite ease-in-out;
+            transform-origin: bottom left;
+        }
 
-            <img class="n7-message__logo" data-logo>
-            <div class="n7-message__text n7-message__text--first">Здравствуйте! Помогу Вам с выбором квартиры в нашем
-                жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
-        </div>
+        @keyframes shine {
+            0% {
+                left: -120%;
+            }
 
-        <div class="n7-suggestions-list">
-            <button type="button" class="n7-suggestions-list__item"  data-message="Узнать больше о ЖК" aria-label="Узнать больше о ЖК">Узнать
-                больше о ЖК</button>
-            <button type="button" class="n7-suggestions-list__item"
-                data-message="Узнать больше о квартирах в ЖК" aria-label="Узнать больше о квартирах в ЖК">Узнать
-                больше о квартирах в ЖК</button>
-        </div>
-        <div class="n7-widget__description">Менеджер подключится в течение 12 секунд после вашего&nbsp;вопроса</div>
+            60% {
+                left: 120%;
+            }
 
+            100% {
+                left: 120%;
+            }
+        }
+
+        @keyframes write {
+            0% {
+                transform: translateX(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(4px) rotate(-10deg);
+            }
+
+            50% {
+                transform: translateX(8px) rotate(5deg);
+            }
+
+            75% {
+                transform: translateX(4px) rotate(-10deg);
+            }
+
+            100% {
+                transform: translateX(0) rotate(0deg);
+            }
+        }
+
+        @keyframes typingFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes dotPulse {
+
+            0%,
+            44% {
+                transform: translateY(0);
+            }
+
+            28% {
+                opacity: 0.4;
+                transform: translateY(-4px);
+            }
+
+            44% {
+                opacity: 0.2;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .n7-widget {
+                height: 70dvh;
+            }
+
+            .n7-widget__body {
+                padding: 12px 15px 20px;
+            }
+        }
+
+        @media (max-width: 415px) {
+            .n7-widget__description {
+                width: fit-content;
+                max-width: 290px;
+                align-self: center;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "n7-widget";
+
+    wrapper.innerHTML = `
+        <div class="n7-widget__title">Напишите специалисту</div>
+        <div class="n7-widget__body" role="log" aria-live="polite">
+            <div class="n7-message n7-message--bot">
+
+                <img class="n7-message__logo" data-logo>
+                <div class="n7-message__text n7-message__text--first">Здравствуйте! Помогу Вам с выбором квартиры в нашем
+                    жилом комплексе. Скажите пожалуйста, что Вас интересует?</div>
+            </div>
+
+            <div class="n7-suggestions-list">
+                <button type="button" class="n7-suggestions-list__item"  data-message="Узнать больше о ЖК" aria-label="Узнать больше о ЖК">Узнать
+                    больше о ЖК</button>
+                <button type="button" class="n7-suggestions-list__item"
+                    data-message="Узнать больше о квартирах в ЖК" aria-label="Узнать больше о квартирах в ЖК">Узнать
+                    больше о квартирах в ЖК</button>
+            </div>
+            <div class="n7-widget__description">Менеджер подключится в течение 12 секунд после вашего&nbsp;вопроса</div>
     </div>
 
     <div class="n7-footer">
@@ -439,37 +452,11 @@
             </button>
         </form>
     </div>
-</div>
-<script>
-(function(){
-    if (!window.N7_WIDGET_CONFIG) {
-        console.error("N7 Widget: Конфигурация не добавлена");
-        return;
+    `;
+
+    function mountWidget() {
+        document.body.appendChild(wrapper);
     }
-    const CONFIG = window.N7_WIDGET_CONFIG;
-
-    const BACKEND_PORT = CONFIG.backendPort;
-    const PROJECTS = CONFIG.project;
-    const LOGO_URL = CONFIG.logoUrl;    
-    const API_URL = CONFIG.apiUrl;
-
-    if (BACKEND_PORT == null || !PROJECTS || !LOGO_URL || !API_URL) {
-        console.error("N7 Widget: в конфигурации есть незаполненные поля");
-        return;
-    }
-
-    const LOGO_ALT = 'Ассистент';
-
-    const CHAT_ID_KEY = 'chat_user_id';
-    const CHAT_HISTORY_KEY = 'chat_history_v1';
-    const MAX_MESSAGES = 30;
-
-    let activeRequestId = 0;
-    let safetyTimeout = null;
-    let thinkingTimer = null;
-    let typingStartedAt = null;
-    let isBotThinking = false;
-    let isFirstUserMessage = true;
 
     function escapeHtml(str) {
         const el = document.createElement('div');
@@ -485,7 +472,7 @@
     }
 
     function getRandomDelay() {
-        return Math.floor(Math.random() * 2001) + 5000;
+        return Math.floor(Math.random() * 3001) + 12000;
     }
 
     function generateMessageId() {
@@ -657,25 +644,6 @@
         };
     }
 
-    function startThinkingCountdown(seconds, onThreshold) {
-        let remaining = seconds;
-
-        const interval = setInterval(() => {
-            if (!thinkingTimer?.counterEl) return;
-            remaining--;
-            thinkingTimer.counterEl.textContent = remaining;
-
-            if (remaining == onThreshold) {
-                clearInterval(interval);
-                thinkingTimer.element?.remove();
-                thinkingTimer = null;
-                showTypingIndicator();
-            }
-        }, 1000);
-
-        thinkingTimer.intervalId = interval;
-    }
-
     function showTypingIndicator() {
         const widgetBody = document.querySelector('.n7-widget__body');
         if (!widgetBody) return;
@@ -759,8 +727,7 @@
                     status: 'inbound',
                     text,
                     timestamp: Math.floor(Date.now() / 1000),
-                    sender: getWidgetLocation(),
-                    port: `https://sr.neuro7.pro:${BACKEND_PORT}/webhook/widget`
+                    sender: getWidgetLocation()
                 }
             ]
         }
@@ -817,7 +784,23 @@
                 isFirstUserMessage = false;
 
                 showBotThinking(12);
-                startThinkingCountdown(12, 3);
+
+                await new Promise(resolve => {
+                    let remaining = 12;
+                    const interval = setInterval(() => {
+                        remaining--;
+                        if (thinkingTimer?.counterEl) {
+                            thinkingTimer.counterEl.textContent = remaining;
+                        }
+                        if (remaining <= 3) {
+                            clearInterval(interval);
+                            thinkingTimer?.element?.remove();
+                            resolve();
+                        }
+                    }, 1000);
+                });
+
+                showTypingIndicator();
 
                 const result = await apiPromise;
                 if (requestId !== activeRequestId) {
@@ -826,17 +809,6 @@
 
                 clearTimeout(safetyTimeout);
                 safetyTimeout = null;
-
-                if (!typingStartedAt) {
-                    if (thinkingTimer?.element) {
-                        thinkingTimer.element.remove();
-                        if (thinkingTimer.intervalId) {
-                            clearInterval(thinkingTimer.intervalId);
-                        }
-                        thinkingTimer = null;
-                    }
-                    showTypingIndicator();
-                }
 
                 hideTypingWithMinDelay(() => {
                     if (result?.response) {
@@ -849,13 +821,9 @@
                 return;
             }
 
-            setTimeout(() => {
-                if (isBotThinking) {
-                    showTypingIndicator();
-                }
-            }, 3000)
-
-            const typingDelay = getRandomDelay();
+            await new Promise(r => setTimeout(r, 3000));
+            showTypingIndicator();
+            
             const result = await apiPromise;
             if (requestId !== activeRequestId) {
                 return;
@@ -968,7 +936,7 @@
         retryPendingMessages(pending);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initWidget() {
         applyLogo();
 
         const form = document.querySelector('.n7-form');
@@ -979,7 +947,7 @@
                 e.preventDefault();
                 form.requestSubmit();
             }
-        })
+        });
 
         window.addEventListener('online', () => {
             if (safetyTimeout) {
@@ -996,7 +964,7 @@
             } else {
                 enableInput();
             }
-        })
+        });
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1020,9 +988,16 @@
         });
 
         restoreChatAndRetry();
-    });
-})();
-</script> -->
-<!-- =------------------------------ -->
+    }
 
-</html>
+    function mountAndInit() {
+        mountWidget();
+        initWidget();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", mountAndInit);
+    } else {
+        mountAndInit();
+    }
+})();
