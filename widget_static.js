@@ -425,7 +425,7 @@
     wrapper.className = "n7-widget";
 
     wrapper.innerHTML = `
-        <div class="n7-widget__title">Задайте вопрос оператору</div>
+        <div class="n7-widget__title">Задайте свой вопрос</div>
         <div class="n7-widget__body" role="log" aria-live="polite">
             <div class="n7-message n7-message--bot">
 
