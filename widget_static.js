@@ -49,7 +49,7 @@
 
         .n7-widget__title {
             color: #fff;
-            font-size: 24px;
+            font-size: 20px;
             text-align: center;
             margin-top: 15px;
             margin-bottom: 15px;
