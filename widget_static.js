@@ -413,6 +413,11 @@
                 align-self: center;
             }
         }
+
+        @media (max-width: 390px) {
+            .n7-message__text {max-width: 75%}
+        }
+        
     `;
     document.head.appendChild(style);
 
