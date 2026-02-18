@@ -8,12 +8,11 @@
     }
     const CONFIG = window.N7_WIDGET_CONFIG;
 
-    const BACKEND_PORT = CONFIG.backendPort;
     const PROJECTS = CONFIG.project;
     const LOGO_URL = CONFIG.logoUrl;
     const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
 
-    if (BACKEND_PORT == null || !PROJECTS || !LOGO_URL) {
+    if (!PROJECTS || !LOGO_URL) {
         console.error("N7 Widget: в конфигурации есть незаполненные поля");
         return;
     }
@@ -40,12 +39,20 @@
             transform: translate(-50%);
             max-width: 420px;
             width: min(100vw, 420px);
-            height: min(85dvh, 450px);
+            height: min(85dvh, 492px);
             display: flex;
             flex-direction: column;
-            background-color: transparent;
-            border-radius: 16px;
+            background-color: rgba(28, 25, 24, 0.6);
+            border-radius: 11px 11px 0 0;
             z-index: 222229998;
+        }
+
+        .n7-widget__title {
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 5px;
+            user-select: none;
         }
 
         .n7-widget__body {
@@ -86,7 +93,6 @@
 
         .n7-message__text--first {
             white-space: normal;
-
         }
 
         .n7-message--bot {
@@ -393,7 +399,6 @@
         @media (max-width: 480px) {
             .n7-widget {
                 height: 70dvh;
-                border-radius: 0;
             }
 
             .n7-widget__body {
@@ -416,6 +421,7 @@
 
     wrapper.innerHTML = `
         <div class="n7-widget__body" role="log" aria-live="polite">
+            <div class="n7-widget__title">Напишите специалисту</div>
             <div class="n7-message n7-message--bot">
 
                 <img class="n7-message__logo" data-logo>
@@ -721,8 +727,7 @@
                     status: 'inbound',
                     text,
                     timestamp: Math.floor(Date.now() / 1000),
-                    sender: getWidgetLocation(),
-                    port: `https://sr.neuro7.pro:${BACKEND_PORT}/webhook/widget`
+                    sender: getWidgetLocation()
                 }
             ]
         }
