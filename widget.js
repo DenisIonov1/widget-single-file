@@ -10,13 +10,17 @@
 
     const PROJECTS = CONFIG.project;
     const LOGO_URL = CONFIG.logoUrl;
-    const API_URL = 'https://sr.neuro7.pro:5009/webhook/widget';
+    const BACKEND_PORT = CONFIG.backendPort;
 
-    if (!PROJECTS || !LOGO_URL) {
+    let rawWidth = CONFIG.width !== undefined ? CONFIG.width : 420;
+    const WIDGET_WIDTH = typeof rawWidth === 'number' ? `${rawWidth}px` : rawWidth;
+    
+    if (!PROJECTS || !LOGO_URL || !BACKEND_PORT) {
         console.error("N7 Widget: в конфигурации есть незаполненные поля");
         return;
     }
 
+    const API_URL = `https://sr.neuro7.pro:${BACKEND_PORT}/webhook/widget`;
     const LOGO_ALT = 'Ассистент';
     const CHAT_ID_KEY = 'chat_user_id';
     const CHAT_HISTORY_KEY = 'chat_history_v1';
@@ -31,15 +35,18 @@
 
     const style = document.createElement("style");
     style.textContent = `
+        :root {
+            --n7-widget-width: ${WIDGET_WIDTH};
+        }
         .n7-widget {
             font-family: "Arial", sans-serif;
             position: fixed;
             bottom: 0px;
             left: 50%;
             transform: translate(-50%);
-            max-width: 420px;
-            width: min(100vw, 420px);
-            height: min(85dvh, 492px);
+            max-width: var(--n7-widget-width);
+            width: min(100vw, var(--n7-widget-width));
+            height: min(85dvh, 470px);
             display: flex;
             flex-direction: column;
             background-color: rgba(28, 25, 24, 0.6);
@@ -49,9 +56,10 @@
 
         .n7-widget__title {
             color: #fff;
-            font-size: 24px;
+            font-size: 20px;
             text-align: center;
-            margin-bottom: 5px;
+            margin-top: 15px;
+            margin-bottom: 15px;
             user-select: none;
         }
 
@@ -63,7 +71,7 @@
             display: flex;
             flex-direction: column;
             row-gap: 10px;
-            padding: 15px;
+            padding: 0 15px;
             justify-content: flex-start;
             scrollbar-width: none;
         }
@@ -302,7 +310,6 @@
             .n7-widget__body {
                 flex: 1;
                 min-height: 0;
-                padding: 15px;
             }
 
             .n7-footer {
@@ -398,7 +405,7 @@
 
         @media (max-width: 480px) {
             .n7-widget {
-                height: 70dvh;
+                height: 65dvh;
             }
 
             .n7-widget__body {
@@ -413,6 +420,11 @@
                 align-self: center;
             }
         }
+
+        @media (max-width: 390px) {
+            .n7-message__text {max-width: 75%}
+        }
+        
     `;
     document.head.appendChild(style);
 
@@ -420,8 +432,8 @@
     wrapper.className = "n7-widget";
 
     wrapper.innerHTML = `
+        <div class="n7-widget__title">Задайте свой вопрос</div>
         <div class="n7-widget__body" role="log" aria-live="polite">
-            <div class="n7-widget__title">Напишите специалисту</div>
             <div class="n7-message n7-message--bot">
 
                 <img class="n7-message__logo" data-logo>
